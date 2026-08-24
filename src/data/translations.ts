@@ -1,0 +1,353 @@
+import { Language } from '../types';
+
+export interface TranslationDict {
+  brandName: string;
+  tagline: string;
+  subheadline: string;
+  farmerLogin: string;
+  buyerLogin: string;
+  registerAsFarmer: string;
+  registerAsBuyer: string;
+  viewMarketPrices: string;
+  howItWorks: string;
+  whyKisanMitra: string;
+  marketPricePreview: string;
+  hello: string;
+  goodMorning: string;
+  sellMyCrop: string;
+  sellMyCropDesc: string;
+  todaysMarketPrice: string;
+  todaysMarketPriceDesc: string;
+  buyerRequirements: string;
+  buyerRequirementsDesc: string;
+  myOrders: string;
+  myOrdersDesc: string;
+  notifications: string;
+  notificationsDesc: string;
+  help: string;
+  helpDesc: string;
+  newBuyerRequirement: string;
+  viewNow: string;
+  acceptOrder: string;
+  decline: string;
+  orderConfirmed: string;
+  viewOrderStatus: string;
+  listMyCrop: string;
+  postRequirement: string;
+  findCrops: string;
+  matchingFarmers: string;
+  distanceAway: string;
+  requiredDate: string;
+  estimatedValue: string;
+  verifiedBuyer: string;
+  verifiedFarmer: string;
+  offerPrice: string;
+  quantity: string;
+  location: string;
+  pickupRadius: string;
+  mspCheck: string;
+  mspWarning: string;
+  mspSatisfied: string;
+  pickupScheduled: string;
+  cropPickedUp: string;
+  paymentCompleted: string;
+  tapToSpeak: string;
+  needHelp: string;
+  home: string;
+  myCrops: string;
+  profile: string;
+  back: string;
+}
+
+export const TRANSLATIONS: Record<Language, TranslationDict> = {
+  en: {
+    brandName: 'KisanMitra',
+    tagline: 'From Farm Gate to Buyer',
+    subheadline: 'Connect directly with verified buyers and sell your crops at transparent prices.',
+    farmerLogin: 'Farmer Login',
+    buyerLogin: 'Buyer Login',
+    registerAsFarmer: 'Register as Farmer',
+    registerAsBuyer: 'Register as Buyer',
+    viewMarketPrices: 'View Market Prices',
+    howItWorks: 'How KisanMitra Works',
+    whyKisanMitra: 'Why KisanMitra?',
+    marketPricePreview: "Today's Mandi Market Rates",
+    hello: 'Hello',
+    goodMorning: 'Good morning!',
+    sellMyCrop: 'SELL MY CROP',
+    sellMyCropDesc: 'Add your crop for direct sale',
+    todaysMarketPrice: "TODAY'S MARKET PRICE",
+    todaysMarketPriceDesc: 'Check current Mandi & APMC prices',
+    buyerRequirements: 'BUYER REQUIREMENTS',
+    buyerRequirementsDesc: 'See what verified buyers need',
+    myOrders: 'MY ORDERS',
+    myOrdersDesc: 'Track pickups & payments',
+    notifications: 'NOTIFICATIONS',
+    notificationsDesc: 'View alerts and updates',
+    help: 'HELP & SUPPORT',
+    helpDesc: 'Toll-free call & voice assistance',
+    newBuyerRequirement: 'NEW BUYER REQUIREMENT',
+    viewNow: 'View Now',
+    acceptOrder: 'ACCEPT ORDER',
+    decline: 'DECLINE',
+    orderConfirmed: 'Order Confirmed ✓',
+    viewOrderStatus: 'View Order Status',
+    listMyCrop: 'LIST MY CROP',
+    postRequirement: 'POST REQUIREMENT',
+    findCrops: 'FIND CROPS',
+    matchingFarmers: 'Matching Farmers Found',
+    distanceAway: 'away',
+    requiredDate: 'Required',
+    estimatedValue: 'Estimated Value',
+    verifiedBuyer: 'Verified Buyer',
+    verifiedFarmer: 'Verified Farmer',
+    offerPrice: 'Price Willing to Pay',
+    quantity: 'Quantity',
+    location: 'Location',
+    pickupRadius: 'Pickup Radius',
+    mspCheck: 'Applicable MSP',
+    mspWarning: 'Offer price must meet or exceed the applicable MSP.',
+    mspSatisfied: 'Price requirement satisfied.',
+    pickupScheduled: 'Pickup Scheduled',
+    cropPickedUp: 'Crop Picked Up',
+    paymentCompleted: 'Payment Completed',
+    tapToSpeak: 'Need help? Tap to speak',
+    needHelp: 'Need help?',
+    home: 'Home',
+    myCrops: 'My Crops',
+    profile: 'Profile',
+    back: 'Back',
+  },
+  te: {
+    brandName: 'కిసాన్‌మిత్ర (KisanMitra)',
+    tagline: 'పొలం గట్టు నుండి నేరుగా కొనుగోలుదారునికి',
+    subheadline: 'ధృవీకరించబడిన కొనుగోలుదారులతో నేరుగా కనెక్ట్ అవ్వండి మరియు మీ పంటలను పారదర్శక ధరలకు అమ్మండి.',
+    farmerLogin: 'రైతు లాగిన్',
+    buyerLogin: 'కొనుగోలుదారు లాగిన్',
+    registerAsFarmer: 'రైతుగా నమోదు చేసుకోండి',
+    registerAsBuyer: 'కొనుగోలుదారుగా నమోదు చేసుకోండి',
+    viewMarketPrices: 'మార్కెట్ ధరలను చూడండి',
+    howItWorks: 'కిసాన్‌మిత్ర ఎలా పనిచేస్తుంది?',
+    whyKisanMitra: 'కిసాన్‌మిత్ర ఎందుకు?',
+    marketPricePreview: 'నేటి మార్కెట్ ధరలు',
+    hello: 'నమస్కారం',
+    goodMorning: 'శుభోదయం!',
+    sellMyCrop: '🌾 నా పంటను అమ్మండి',
+    sellMyCropDesc: 'మీ పంటను అమ్మకానికి నమోదు చేయండి',
+    todaysMarketPrice: '📈 నేటి మార్కెట్ ధరలు',
+    todaysMarketPriceDesc: 'ప్రస్తుత మార్కెట్ మరియు MSP ధరలు తనిఖీ చేయండి',
+    buyerRequirements: '📋 కొనుగోలుదారుల అవసరాలు',
+    buyerRequirementsDesc: 'కొనుగోలుదారుల ఆర్డర్లను చూడండి',
+    myOrders: '📦 నా ఆర్డర్లు',
+    myOrdersDesc: 'పికప్ మరియు చెల్లింపుల వివరాలు',
+    notifications: '🔔 నోటిఫికేషన్లు',
+    notificationsDesc: 'ముఖ్యమైన సమాచారం మరియు అప్‌డేట్లు',
+    help: '☎️ సహాయం & మద్దతు',
+    helpDesc: 'ఉచిత కాల్ & వాయిస్ సహాయం',
+    newBuyerRequirement: 'కొత్త కొనుగోలుదారు అవసరం',
+    viewNow: 'ఇప్పుడే చూడండి',
+    acceptOrder: 'ఆర్డర్ అంగీకరించండి',
+    decline: 'తిరస్కరించండి',
+    orderConfirmed: 'ఆర్డర్ ఖరారైంది ✓',
+    viewOrderStatus: 'ఆర్డర్ స్థితిని చూడండి',
+    listMyCrop: 'నా పంటను నమోదు చేయండి',
+    postRequirement: 'అవసరాన్ని పోస్ట్ చేయండి',
+    findCrops: 'పంటలను కనుగొనండి',
+    matchingFarmers: 'సరిపోలిన రైతులు దొరికారు',
+    distanceAway: 'దూరంలో',
+    requiredDate: 'కావలసిన తేదీ',
+    estimatedValue: 'అంచనా విలువ',
+    verifiedBuyer: 'ధృవీకరించబడిన కొనుగోలుదారు',
+    verifiedFarmer: 'ధృవీకరించబడిన రైతు',
+    offerPrice: 'చెల్లించదలచిన ధర',
+    quantity: 'పరిమాణం',
+    location: 'ప్రాంతం',
+    pickupRadius: 'పికప్ పరిధి',
+    mspCheck: 'వర్తించే కనీస మద్దతు ధర (MSP)',
+    mspWarning: 'ఆఫర్ ధర కనీస మద్దతు ధర (MSP) కంటే ఎక్కువ లేదా సమానంగా ఉండాలి.',
+    mspSatisfied: 'ధర అవసరం సంతృప్తికరంగా ఉంది.',
+    pickupScheduled: 'పికప్ షెడ్యూల్ చేయబడింది',
+    cropPickedUp: 'పంట తీసుకున్నారు',
+    paymentCompleted: 'చెల్లింపు పూర్తయింది',
+    tapToSpeak: 'సహాయం కావాలా? మాట్లాడటానికి నొక్కండి',
+    needHelp: 'సహాయం కావాలా?',
+    home: 'హోమ్',
+    myCrops: 'నా పంటలు',
+    profile: 'ప్రొఫైల్',
+    back: 'వెనుకకు',
+  },
+  hi: {
+    brandName: 'किसानमित्र (KisanMitra)',
+    tagline: 'खेत से सीधे खरीदार तक',
+    subheadline: 'सत्यापित खरीदारों से सीधे जुड़ें और अपनी फसल पारदर्शी दामों पर बेचें।',
+    farmerLogin: 'किसान लॉगिन',
+    buyerLogin: 'खरीदार लॉगिन',
+    registerAsFarmer: 'किसान पंजीकरण',
+    registerAsBuyer: 'खरीदार पंजीकरण',
+    viewMarketPrices: 'मंडी भाव देखें',
+    howItWorks: 'किसानमित्र कैसे काम करता है?',
+    whyKisanMitra: 'किसानमित्र क्यों?',
+    marketPricePreview: 'आज के ताजा मंडी भाव',
+    hello: 'नमस्ते',
+    goodMorning: 'शुभ प्रभात!',
+    sellMyCrop: '🌾 मेरी फसल बेचें',
+    sellMyCropDesc: 'बिक्री के लिए अपनी फसल जोड़ें',
+    todaysMarketPrice: '📈 आज का मंडी भाव',
+    todaysMarketPriceDesc: 'ताजा भाव व एमएसपी (MSP) देखें',
+    buyerRequirements: '📋 खरीदार की मांग',
+    buyerRequirementsDesc: 'खरीदारों की आवश्यकताएं देखें',
+    myOrders: '📦 मेरे ऑर्डर',
+    myOrdersDesc: 'पिकअप और भुगतान ट्रैक करें',
+    notifications: '🔔 सूचनाएं',
+    notificationsDesc: 'जरूरी अपडेट देखें',
+    help: '☎️ सहायता केंद्र',
+    helpDesc: 'निःशुल्क कॉल और आवाज सहायता',
+    newBuyerRequirement: 'नया खरीदार ऑर्डर',
+    viewNow: 'अभी देखें',
+    acceptOrder: 'ऑर्डर स्वीकार करें',
+    decline: 'अस्वीकार करें',
+    orderConfirmed: 'ऑर्डर पक्का हुआ ✓',
+    viewOrderStatus: 'ऑर्डर स्थिति देखें',
+    listMyCrop: 'फसल दर्ज करें',
+    postRequirement: 'मांग दर्ज करें',
+    findCrops: 'फसलें खोजें',
+    matchingFarmers: 'उपलब्ध किसान मिले',
+    distanceAway: 'दूर',
+    requiredDate: 'आवश्यकता तिथि',
+    estimatedValue: 'अनुमानित मूल्य',
+    verifiedBuyer: 'सत्यापित खरीदार',
+    verifiedFarmer: 'सत्यापित किसान',
+    offerPrice: 'प्रस्तावित दर',
+    quantity: 'मात्रा',
+    location: 'स्थान',
+    pickupRadius: 'पिकअप दायरा',
+    mspCheck: 'लागू एमएसपी (MSP)',
+    mspWarning: 'प्रस्तावित मूल्य न्यूनतम समर्थन मूल्य (MSP) के बराबर या अधिक होना चाहिए।',
+    mspSatisfied: 'मूल्य नियम सही है।',
+    pickupScheduled: 'पिकअप तय हुआ',
+    cropPickedUp: 'फसल उठा ली गई',
+    paymentCompleted: 'भुगतान पूरा हुआ',
+    tapToSpeak: 'मदद चाहिए? बोलकर बताएं',
+    needHelp: 'सहायता चाहिए?',
+    home: 'होम',
+    myCrops: 'मेरी फसलें',
+    profile: 'प्रोफाइल',
+    back: 'वापस',
+  },
+  ta: {
+    brandName: 'கிசான்மித்ரா (KisanMitra)',
+    tagline: 'பண்ணை வாசலில் இருந்து வாங்குபவர் வரை',
+    subheadline: 'சரிபார்க்கப்பட்ட வாங்குபவர்களுடன் நேரடியாக இணைந்து உங்கள் பயிர்களை வெளிப்படையான விலையில் விற்கவும்.',
+    farmerLogin: 'விவசாயி உள்நுழைவு',
+    buyerLogin: 'வாங்குபவர் உள்நுழைவு',
+    registerAsFarmer: 'விவசாயியாக பதிவு செய்க',
+    registerAsBuyer: 'வாங்குபவராக பதிவு செய்க',
+    viewMarketPrices: 'சந்தை விலைகளைக் காண்க',
+    howItWorks: 'கிசான்மித்ரா எவ்வாறு செயல்படுகிறது?',
+    whyKisanMitra: 'ஏன் கிசான்மித்ரா?',
+    marketPricePreview: 'இன்றைய சந்தை விலைகள்',
+    hello: 'வணக்கம்',
+    goodMorning: 'காலை வணக்கம்!',
+    sellMyCrop: '🌾 எனது பயிரை விற்க',
+    sellMyCropDesc: 'விற்பனைக்காக உங்கள் பயிரைச் சேர்க்கவும்',
+    todaysMarketPrice: '📈 இன்றைய சந்தை விலை',
+    todaysMarketPriceDesc: 'மண்டி & MSP விலைகளை சரிபார்க்கவும்',
+    buyerRequirements: '📋 வாங்குபவர் தேவைகள்',
+    buyerRequirementsDesc: 'வாங்குபவரின் கோரிக்கைகளைக் காண்க',
+    myOrders: '📦 எனது ஆர்டர்கள்',
+    myOrdersDesc: 'பிக்கப் மற்றும் கட்டண விவரங்கள்',
+    notifications: '🔔 அறிவிப்புகள்',
+    notificationsDesc: 'முக்கிய அறிவிப்புகள்',
+    help: '☎️ உதவி மையம்',
+    helpDesc: 'இலவச அழைப்பு & குரல் உதவி',
+    newBuyerRequirement: 'புதிய வாங்குபவர் தேவை',
+    viewNow: 'இப்போதே பார்க்கவும்',
+    acceptOrder: 'ஆர்டரை ஏற்கவும்',
+    decline: 'நிராகரிக்கவும்',
+    orderConfirmed: 'ஆர்டர் உறுதி செய்யப்பட்டது ✓',
+    viewOrderStatus: 'ஆர்டர் நிலையைக் காண்க',
+    listMyCrop: 'பயிரைப் பட்டியலிடுக',
+    postRequirement: 'தேவையை பதிவிடுக',
+    findCrops: 'பயிர்களைத் தேடுங்கள்',
+    matchingFarmers: 'பொருத்தமான விவசாயிகள் கிடைத்துள்ளனர்',
+    distanceAway: 'தொலைவில்',
+    requiredDate: 'தேவையான தேதி',
+    estimatedValue: 'மதிப்பிடப்பட்ட மதிப்பு',
+    verifiedBuyer: 'சரிபார்க்கப்பட்ட வாங்குபவர்',
+    verifiedFarmer: 'சரிபார்க்கப்பட்ட விவசாயி',
+    offerPrice: 'வழங்கப்படும் விலை',
+    quantity: 'அளவு',
+    location: 'இடம்',
+    pickupRadius: 'பிக்கப் ஆரம்',
+    mspCheck: 'பொருந்தக்கூடிய MSP',
+    mspWarning: 'விலை குறைந்தபட்ச ஆதரவு விலையை (MSP) விட சமமாக அல்லது அதிகமாக இருக்க வேண்டும்.',
+    mspSatisfied: 'விலை விதிமுறை பூர்த்தியானது.',
+    pickupScheduled: 'பிக்கப் திட்டமிடப்பட்டது',
+    cropPickedUp: 'பயிர் பெறப்பட்டது',
+    paymentCompleted: 'கட்டணம் செலுத்தப்பட்டது',
+    tapToSpeak: 'உதவி தேவையா? பேச தட்டவும்',
+    needHelp: 'உதவி தேவையா?',
+    home: 'முகப்பு',
+    myCrops: 'என் பயிர்கள்',
+    profile: 'சுயவிவரம்',
+    back: 'பின்செல்க',
+  },
+  mr: {
+    brandName: 'किसानमित्र (KisanMitra)',
+    tagline: 'थेट शेताच्या बांधावरून ग्राहकापर्यंत',
+    subheadline: 'नोंदणीकृत खरेदीदारांशी थेट जोडा आणि आपल्या पिकांची पारदर्शक दरात विक्री करा.',
+    farmerLogin: 'शेतकरी लॉगिन',
+    buyerLogin: 'खरेदीदार लॉगिन',
+    registerAsFarmer: 'शेतकरी नोंदणी',
+    registerAsBuyer: 'खरेदीदार नोंदणी',
+    viewMarketPrices: 'बाजारभाव पहा',
+    howItWorks: 'किसानमित्र कसे कार्य करते?',
+    whyKisanMitra: 'किसानमित्र का?',
+    marketPricePreview: 'आजचे ताजे बाजारभाव',
+    hello: 'नमस्कार',
+    goodMorning: 'शुभ सकाळ!',
+    sellMyCrop: '🌾 माझे पीक विका',
+    sellMyCropDesc: 'थेट विक्रीसाठी पीक जोडा',
+    todaysMarketPrice: '📈 आजचे बाजारभाव',
+    todaysMarketPriceDesc: 'मंडी व हमीभाव (MSP) तपासा',
+    buyerRequirements: '📋 खरेदीदारांची मागणी',
+    buyerRequirementsDesc: 'खरेदीदारांच्या मागण्या पहा',
+    myOrders: '📦 माझ्या ऑर्डर्स',
+    myOrdersDesc: 'पिकअप आणि पैसे मिळण्याची स्थिती',
+    notifications: '🔔 सूचना',
+    notificationsDesc: 'महत्वाचे अपडेट्स पहा',
+    help: '☎️ मदत आणि सहाय्य',
+    helpDesc: 'मोफत कॉल व व्हॉईस मदत',
+    newBuyerRequirement: 'नवीन खरेदीदार मागणी',
+    viewNow: 'आता पहा',
+    acceptOrder: 'ऑर्डर स्वीकारा',
+    decline: 'नाकारा',
+    orderConfirmed: 'ऑर्डर पक्की झाली ✓',
+    viewOrderStatus: 'ऑर्डर स्थिती पहा',
+    listMyCrop: 'पीक नोंदवा',
+    postRequirement: 'मागणी नोंदवा',
+    findCrops: 'पिके शोधा',
+    matchingFarmers: 'योग्य शेतकरी सापडले',
+    distanceAway: 'अंतरावर',
+    requiredDate: 'आवश्यक तारीख',
+    estimatedValue: 'अंदाजे रक्कम',
+    verifiedBuyer: 'नोंदणीकृत खरेदीदार',
+    verifiedFarmer: 'नोंदणीकृत शेतकरी',
+    offerPrice: 'देऊ केलेली किंमत',
+    quantity: 'प्रमाण',
+    location: 'स्थान',
+    pickupRadius: 'पिकअप क्षेत्र',
+    mspCheck: 'लागू हमीभाव (MSP)',
+    mspWarning: 'किंमत किमान हमीभावाच्या (MSP) बरोबर किंवा अधिक असणे आवश्यक आहे.',
+    mspSatisfied: 'किंमत अट पूर्ण झाली.',
+    pickupScheduled: 'पिकअप निश्चित झाले',
+    cropPickedUp: 'माल उचलला गेला',
+    paymentCompleted: 'पैसे जमा झाले',
+    tapToSpeak: 'मदत हवी आहे? बोलण्यासाठी टॅप करा',
+    needHelp: 'मदत हवी आहे?',
+    home: 'मुख्य',
+    myCrops: 'माझी पिके',
+    profile: 'प्रोफाइल',
+    back: 'मागे',
+  }
+};
