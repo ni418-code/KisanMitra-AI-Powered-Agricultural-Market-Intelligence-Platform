@@ -2,56 +2,25 @@ const Order = require('../models/Order');
 const Notification = require('../models/Notification');
 const { rankMarketsByNetProfit } = require('../utils/profitCalculator');
 
-function buildTimelineStep(status, label, description) {
-  return { status, label, description, timestamp: new Date().toISOString(), completed: true, current: false };
-}
+const toKg = (quantity, unit) => unit === 'quintal' ? quantity * 100 : quantity;
+function buildTimelineStep(status, label, description) { return { status, label, description, timestamp: new Date().toISOString(), completed: true, current: false }; }
 
-// POST /api/orders -- created once a farmer accepts a buyer requirement (or vice versa)
 async function createOrder(req, res) {
-  const {
-    requirementId, listingId, cropId, cropName, cropImage, quantity, unit,
-    agreedPricePerKg, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation,
-    buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm,
-  } = req.body;
-
-  if (!farmerId || !buyerId || !quantity || !agreedPricePerKg) {
-    return res.status(400).json({ error: 'farmerId, buyerId, quantity and agreedPricePerKg are required.' });
-  }
-
-  const totalAmount = quantity * agreedPricePerKg;
-
-  const order = await Order.create({
-    requirementId, listingId, cropId, cropName, cropImage, quantity, unit: unit || 'kg',
-    agreedPricePerKg, totalAmount,
-    farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation,
-    buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm,
-    status: 'posted',
-    paymentDetails: {
-      status: 'Pending',
-      amount: totalAmount,
-      breakdown: {
-        quantity, unit: unit || 'kg', ratePerKg: agreedPricePerKg,
-        totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount,
-      },
-    },
-    timeline: [buildTimelineStep('posted', 'Order Created', 'Order created and awaiting confirmation.')],
-  });
-
-  await Notification.create({
-    recipientRole: 'farmer', recipientId: farmerId,
-    title: 'New order created', message: `Order for ${quantity}${unit || 'kg'} of ${cropName || cropId} was created.`,
-    type: 'order', relatedId: order._id.toString(),
-  });
-
+  const { requirementId, listingId, cropId, cropName, cropImage, quantity, unit = 'kg', agreedPricePerKg, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation, buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm } = req.body;
+  if (!farmerId || !buyerId || !quantity || !agreedPricePerKg) return res.status(400).json({ error: 'farmerId, buyerId, quantity and agreedPricePerKg are required.' });
+  if (req.userId !== farmerId && req.userId !== buyerId) return res.status(403).json({ error: 'You can only create an order involving your own account.' });
+  const quantityKg = toKg(quantity, unit);
+  const totalAmount = quantityKg * agreedPricePerKg;
+  const order = await Order.create({ requirementId, listingId, cropId, cropName, cropImage, quantity, unit, agreedPricePerKg, totalAmount, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation, buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm, status: 'accepted', paymentDetails: { status: 'Pending', method: 'UPI / Bank Transfer (Demo)', amount: totalAmount, breakdown: { quantity, unit, ratePerKg: agreedPricePerKg, totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount } }, timeline: [buildTimelineStep('accepted', 'Order Accepted', 'Order created after farmer acceptance.')] });
+  await Notification.create({ recipientRole: 'farmer', recipientId: farmerId, title: 'Order created', message: `Order for ${quantity}${unit} of ${cropName || cropId} was created.`, type: 'order', relatedId: order._id.toString() });
+  await Notification.create({ recipientRole: 'buyer', recipientId: buyerId, title: 'Order created', message: `Your order for ${quantity}${unit} of ${cropName || cropId} was created.`, type: 'order', relatedId: order._id.toString() });
   res.status(201).json({ order });
 }
 
 async function getOrders(req, res) {
-  const { farmerId, buyerId, status } = req.query;
-  const query = {};
-  if (farmerId) query.farmerId = farmerId;
-  if (buyerId) query.buyerId = buyerId;
-  if (status) query.status = status;
+  if (!req.userId) return res.status(401).json({ error: 'Authentication required.' });
+  const query = { $or: [{ farmerId: req.userId }, { buyerId: req.userId }] };
+  if (req.query.status) query.status = req.query.status;
   const orders = await Order.find(query).sort({ createdAt: -1 });
   res.json({ orders });
 }
@@ -59,81 +28,56 @@ async function getOrders(req, res) {
 async function getOrder(req, res) {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found.' });
+  if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to view this order.' });
   res.json({ order });
 }
 
-// PUT /api/orders/:id/status -- moves the order through posted -> matched -> accepted -> pickup_scheduled -> crop_picked_up -> payment_completed
 async function updateOrderStatus(req, res) {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found.' });
-
+  if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to update this order.' });
   const { status, label, description } = req.body;
   const allowed = ['posted', 'matched', 'accepted', 'pickup_scheduled', 'crop_picked_up', 'payment_completed'];
-  if (!allowed.includes(status)) {
-    return res.status(400).json({ error: `status must be one of: ${allowed.join(', ')}` });
-  }
-
+  if (!allowed.includes(status)) return res.status(400).json({ error: `status must be one of: ${allowed.join(', ')}` });
   order.status = status;
   order.timeline.push(buildTimelineStep(status, label || status, description || ''));
+  if (status === 'pickup_scheduled' && order.pickupDetails) order.pickupDetails.transportStatus = 'Driver Assigned';
+  if (status === 'crop_picked_up' && order.pickupDetails) order.pickupDetails.transportStatus = 'Picked Up';
   await order.save();
-
+  await Notification.create({ recipientRole: 'all', recipientId: order.buyerId, title: `Order update: ${status}`, message: `Order ${order._id} moved to ${status}.`, type: status === 'payment_completed' ? 'payment' : 'order', relatedId: order._id.toString() });
+  await Notification.create({ recipientRole: 'all', recipientId: order.farmerId, title: `Order update: ${status}`, message: `Order ${order._id} moved to ${status}.`, type: status === 'payment_completed' ? 'payment' : 'order', relatedId: order._id.toString() });
   res.json({ order });
 }
 
-// PUT /api/orders/:id/pickup -- transport details
 async function updatePickup(req, res) {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found.' });
-
-  order.pickupDetails = { ...order.pickupDetails.toObject?.() ?? order.pickupDetails, ...req.body };
+  if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to update pickup details.' });
+  order.pickupDetails = { ...(order.pickupDetails?.toObject?.() || order.pickupDetails || {}), ...req.body };
   order.status = 'pickup_scheduled';
   order.timeline.push(buildTimelineStep('pickup_scheduled', 'Pickup Scheduled', 'Transport has been arranged for this order.'));
   await order.save();
-
   res.json({ order });
 }
 
-// POST /api/orders/:id/pay -- SIMULATED payment confirmation for the hackathon/demo build.
-// Swap this for a real gateway (Razorpay/UPI) before going live -- see README "Next phases".
 async function simulatePayment(req, res) {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found.' });
-
+  if (order.buyerId.toString() !== req.userId && order.farmerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to pay this order.' });
+  if (order.paymentDetails?.status === 'Payment Completed') return res.json({ order });
   const { method = 'UPI (simulated)' } = req.body;
-  const platformFeePercent = 0; // adjust if you introduce a real platform fee
-  const platformFee = Math.round((order.totalAmount * platformFeePercent) / 100);
-  const netPayoutToFarmer = order.totalAmount - platformFee;
-
-  order.paymentDetails = {
-    status: 'Payment Completed',
-    method,
-    amount: order.totalAmount,
-    transactionId: `SIM-${Date.now()}`,
-    completedAt: new Date().toISOString(),
-    breakdown: {
-      quantity: order.quantity, unit: order.unit, ratePerKg: order.agreedPricePerKg,
-      totalAmount: order.totalAmount, platformFee, netPayoutToFarmer,
-    },
-  };
+  const totalAmount = order.totalAmount;
+  order.paymentDetails = { status: 'Payment Completed', method, amount: totalAmount, transactionId: `KM-UPI-${Date.now().toString().slice(-8)}`, completedAt: new Date().toISOString(), breakdown: { quantity: order.quantity, unit: order.unit, ratePerKg: order.agreedPricePerKg, totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount } };
   order.status = 'payment_completed';
-  order.timeline.push(buildTimelineStep('payment_completed', 'Payment Completed', `Payment of ₹${order.totalAmount} completed via ${method}.`));
+  order.timeline.push(buildTimelineStep('payment_completed', 'Payment Completed', `Payment of ₹${totalAmount} completed via ${method}.`));
   await order.save();
-
-  await Notification.create({
-    recipientRole: 'farmer', recipientId: order.farmerId,
-    title: 'Payment received', message: `₹${netPayoutToFarmer} has been credited for order ${order._id}.`,
-    type: 'payment', relatedId: order._id.toString(),
-  });
-
+  for (const [recipientId, role] of [[order.farmerId, 'farmer'], [order.buyerId, 'buyer']]) await Notification.create({ recipientRole: role, recipientId, title: 'Payment completed ✓', message: `₹${totalAmount.toLocaleString('en-IN')} payment completed for order ${order._id}.`, type: 'payment', relatedId: order._id.toString() });
   res.json({ order });
 }
 
-// POST /api/orders/best-market -- the deterministic "where should I sell" calculator
 async function bestMarket(req, res) {
   const { quantityKg, options } = req.body;
-  if (!quantityKg || !Array.isArray(options) || options.length === 0) {
-    return res.status(400).json({ error: 'quantityKg and a non-empty options[] of {marketName, pricePerKg, distanceKm} are required.' });
-  }
+  if (!quantityKg || !Array.isArray(options) || options.length === 0) return res.status(400).json({ error: 'quantityKg and a non-empty options[] are required.' });
   const ranked = rankMarketsByNetProfit(quantityKg, options);
   res.json({ ranked, recommendation: ranked[0] });
 }
