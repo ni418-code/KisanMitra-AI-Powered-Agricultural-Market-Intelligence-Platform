@@ -1,85 +1,13 @@
 const Order = require('../models/Order');
 const Notification = require('../models/Notification');
 const { rankMarketsByNetProfit } = require('../utils/profitCalculator');
-
 const toKg = (quantity, unit) => unit === 'quintal' ? quantity * 100 : quantity;
 function buildTimelineStep(status, label, description) { return { status, label, description, timestamp: new Date().toISOString(), completed: true, current: false }; }
-
-async function createOrder(req, res) {
-  const { requirementId, listingId, cropId, cropName, cropImage, quantity, unit = 'kg', agreedPricePerKg, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation, buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm } = req.body;
-  if (!farmerId || !buyerId || !quantity || !agreedPricePerKg) return res.status(400).json({ error: 'farmerId, buyerId, quantity and agreedPricePerKg are required.' });
-  if (req.userId !== farmerId && req.userId !== buyerId) return res.status(403).json({ error: 'You can only create an order involving your own account.' });
-  const quantityKg = toKg(quantity, unit);
-  const totalAmount = quantityKg * agreedPricePerKg;
-  const order = await Order.create({ requirementId, listingId, cropId, cropName, cropImage, quantity, unit, agreedPricePerKg, totalAmount, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation, buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm, status: 'accepted', paymentDetails: { status: 'Pending', method: 'UPI / Bank Transfer (Demo)', amount: totalAmount, breakdown: { quantity, unit, ratePerKg: agreedPricePerKg, totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount } }, timeline: [buildTimelineStep('accepted', 'Order Accepted', 'Order created after farmer acceptance.')] });
-  await Notification.create({ recipientRole: 'farmer', recipientId: farmerId, title: 'Order created', message: `Order for ${quantity}${unit} of ${cropName || cropId} was created.`, type: 'order', relatedId: order._id.toString() });
-  await Notification.create({ recipientRole: 'buyer', recipientId: buyerId, title: 'Order created', message: `Your order for ${quantity}${unit} of ${cropName || cropId} was created.`, type: 'order', relatedId: order._id.toString() });
-  res.status(201).json({ order });
-}
-
-async function getOrders(req, res) {
-  if (!req.userId) return res.status(401).json({ error: 'Authentication required.' });
-  const query = { $or: [{ farmerId: req.userId }, { buyerId: req.userId }] };
-  if (req.query.status) query.status = req.query.status;
-  const orders = await Order.find(query).sort({ createdAt: -1 });
-  res.json({ orders });
-}
-
-async function getOrder(req, res) {
-  const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found.' });
-  if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to view this order.' });
-  res.json({ order });
-}
-
-async function updateOrderStatus(req, res) {
-  const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found.' });
-  if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to update this order.' });
-  const { status, label, description } = req.body;
-  const allowed = ['posted', 'matched', 'accepted', 'pickup_scheduled', 'crop_picked_up', 'payment_completed'];
-  if (!allowed.includes(status)) return res.status(400).json({ error: `status must be one of: ${allowed.join(', ')}` });
-  order.status = status;
-  order.timeline.push(buildTimelineStep(status, label || status, description || ''));
-  if (status === 'pickup_scheduled' && order.pickupDetails) order.pickupDetails.transportStatus = 'Driver Assigned';
-  if (status === 'crop_picked_up' && order.pickupDetails) order.pickupDetails.transportStatus = 'Picked Up';
-  await order.save();
-  await Notification.create({ recipientRole: 'all', recipientId: order.buyerId, title: `Order update: ${status}`, message: `Order ${order._id} moved to ${status}.`, type: status === 'payment_completed' ? 'payment' : 'order', relatedId: order._id.toString() });
-  await Notification.create({ recipientRole: 'all', recipientId: order.farmerId, title: `Order update: ${status}`, message: `Order ${order._id} moved to ${status}.`, type: status === 'payment_completed' ? 'payment' : 'order', relatedId: order._id.toString() });
-  res.json({ order });
-}
-
-async function updatePickup(req, res) {
-  const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found.' });
-  if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to update pickup details.' });
-  order.pickupDetails = { ...(order.pickupDetails?.toObject?.() || order.pickupDetails || {}), ...req.body };
-  order.status = 'pickup_scheduled';
-  order.timeline.push(buildTimelineStep('pickup_scheduled', 'Pickup Scheduled', 'Transport has been arranged for this order.'));
-  await order.save();
-  res.json({ order });
-}
-
-async function simulatePayment(req, res) {
-  const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ error: 'Order not found.' });
-  if (order.buyerId.toString() !== req.userId && order.farmerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to pay this order.' });
-  if (order.paymentDetails?.status === 'Payment Completed') return res.json({ order });
-  const { method = 'UPI (simulated)' } = req.body;
-  const totalAmount = order.totalAmount;
-  order.paymentDetails = { status: 'Payment Completed', method, amount: totalAmount, transactionId: `KM-UPI-${Date.now().toString().slice(-8)}`, completedAt: new Date().toISOString(), breakdown: { quantity: order.quantity, unit: order.unit, ratePerKg: order.agreedPricePerKg, totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount } };
-  order.status = 'payment_completed';
-  order.timeline.push(buildTimelineStep('payment_completed', 'Payment Completed', `Payment of ₹${totalAmount} completed via ${method}.`));
-  await order.save();
-  for (const [recipientId, role] of [[order.farmerId, 'farmer'], [order.buyerId, 'buyer']]) await Notification.create({ recipientRole: role, recipientId, title: 'Payment completed ✓', message: `₹${totalAmount.toLocaleString('en-IN')} payment completed for order ${order._id}.`, type: 'payment', relatedId: order._id.toString() });
-  res.json({ order });
-}
-
-async function bestMarket(req, res) {
-  const { quantityKg, options } = req.body;
-  if (!quantityKg || !Array.isArray(options) || options.length === 0) return res.status(400).json({ error: 'quantityKg and a non-empty options[] are required.' });
-  const ranked = rankMarketsByNetProfit(quantityKg, options);
-  res.json({ ranked, recommendation: ranked[0] });
-}
-
+async function createOrder(req, res) { const { requirementId, listingId, cropId, cropName, cropImage, quantity, unit = 'kg', agreedPricePerKg, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation, buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm } = req.body; if (!farmerId || !buyerId || !quantity || !agreedPricePerKg) return res.status(400).json({ error: 'farmerId, buyerId, quantity and agreedPricePerKg are required.' }); if (req.userId !== farmerId && req.userId !== buyerId) return res.status(403).json({ error: 'You can only create an order involving your own account.' }); const quantityKg = toKg(quantity, unit); const totalAmount = quantityKg * agreedPricePerKg; const order = await Order.create({ requirementId, listingId, cropId, cropName, cropImage, quantity, unit, agreedPricePerKg, totalAmount, farmerId, farmerName, farmerVillage, farmerPhone, farmerLocation, buyerId, buyerName, buyerPhone, buyerLocation, buyerRating, distanceKm, status: 'accepted', paymentDetails: { status: 'Pending', method: 'UPI / Bank Transfer (Demo)', amount: totalAmount, breakdown: { quantity, unit, ratePerKg: agreedPricePerKg, totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount } }, timeline: [buildTimelineStep('accepted', 'Order Accepted', 'Order created after farmer acceptance.')] }); await Notification.create({ recipientRole: 'farmer', recipientId: farmerId, title: 'Order created', message: `Order for ${quantity}${unit} of ${cropName || cropId} was created.`, type: 'order', relatedId: order._id.toString() }); await Notification.create({ recipientRole: 'buyer', recipientId: buyerId, title: 'Order created', message: `Your order for ${quantity}${unit} of ${cropName || cropId} was created.`, type: 'order', relatedId: order._id.toString() }); res.status(201).json({ order }); }
+async function getOrders(req, res) { if (!req.userId) return res.status(401).json({ error: 'Authentication required.' }); const query = { $or: [{ farmerId: req.userId }, { buyerId: req.userId }] }; if (req.query.status) query.status = req.query.status; const orders = await Order.find(query).sort({ createdAt: -1 }); res.json({ orders }); }
+async function getOrder(req, res) { const order = await Order.findById(req.params.id); if (!order) return res.status(404).json({ error: 'Order not found.' }); if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to view this order.' }); res.json({ order }); }
+async function updateOrderStatus(req, res) { const order = await Order.findById(req.params.id); if (!order) return res.status(404).json({ error: 'Order not found.' }); if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to update this order.' }); const { status, label, description } = req.body; const allowed = ['posted', 'matched', 'accepted', 'pickup_scheduled', 'crop_picked_up', 'payment_completed']; if (!allowed.includes(status)) return res.status(400).json({ error: `status must be one of: ${allowed.join(', ')}` }); order.status = status; order.timeline.push(buildTimelineStep(status, label || status, description || '')); if (status === 'pickup_scheduled' && order.pickupDetails) order.pickupDetails.transportStatus = 'Driver Assigned'; if (status === 'crop_picked_up' && order.pickupDetails) order.pickupDetails.transportStatus = 'Picked Up'; await order.save(); const type = status === 'payment_completed' ? 'payment' : 'order'; await Notification.create({ recipientRole: 'buyer', recipientId: order.buyerId, title: `Order update: ${status}`, message: `Order ${order._id} moved to ${status}.`, type, relatedId: order._id.toString() }); await Notification.create({ recipientRole: 'farmer', recipientId: order.farmerId, title: `Order update: ${status}`, message: `Order ${order._id} moved to ${status}.`, type, relatedId: order._id.toString() }); res.json({ order }); }
+async function updatePickup(req, res) { const order = await Order.findById(req.params.id); if (!order) return res.status(404).json({ error: 'Order not found.' }); if (order.farmerId.toString() !== req.userId && order.buyerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to update pickup details.' }); order.pickupDetails = { ...(order.pickupDetails?.toObject?.() || order.pickupDetails || {}), ...req.body }; order.status = 'pickup_scheduled'; order.timeline.push(buildTimelineStep('pickup_scheduled', 'Pickup Scheduled', 'Transport has been arranged for this order.')); await order.save(); res.json({ order }); }
+async function simulatePayment(req, res) { const order = await Order.findById(req.params.id); if (!order) return res.status(404).json({ error: 'Order not found.' }); if (order.buyerId.toString() !== req.userId && order.farmerId.toString() !== req.userId) return res.status(403).json({ error: 'You are not authorized to pay this order.' }); if (order.paymentDetails?.status === 'Payment Completed') return res.json({ order }); const { method = 'UPI (simulated)' } = req.body; const totalAmount = order.totalAmount; order.paymentDetails = { status: 'Payment Completed', method, amount: totalAmount, transactionId: `KM-UPI-${Date.now().toString().slice(-8)}`, completedAt: new Date().toISOString(), breakdown: { quantity: order.quantity, unit: order.unit, ratePerKg: order.agreedPricePerKg, totalAmount, platformFee: 0, netPayoutToFarmer: totalAmount } }; order.status = 'payment_completed'; order.timeline.push(buildTimelineStep('payment_completed', 'Payment Completed', `Payment of ₹${totalAmount} completed via ${method}.`)); await order.save(); await Notification.create({ recipientRole: 'farmer', recipientId: order.farmerId, title: 'Payment completed ✓', message: `₹${totalAmount.toLocaleString('en-IN')} payment completed for order ${order._id}.`, type: 'payment', relatedId: order._id.toString() }); await Notification.create({ recipientRole: 'buyer', recipientId: order.buyerId, title: 'Payment completed ✓', message: `₹${totalAmount.toLocaleString('en-IN')} payment completed for order ${order._id}.`, type: 'payment', relatedId: order._id.toString() }); res.json({ order }); }
+async function bestMarket(req, res) { const { quantityKg, options } = req.body; if (!quantityKg || !Array.isArray(options) || options.length === 0) return res.status(400).json({ error: 'quantityKg and a non-empty options[] are required.' }); const ranked = rankMarketsByNetProfit(quantityKg, options); res.json({ ranked, recommendation: ranked[0] }); }
 module.exports = { createOrder, getOrders, getOrder, updateOrderStatus, updatePickup, simulatePayment, bestMarket };
