@@ -1,16 +1,12 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { DemoBanner } from './components/common/DemoBanner';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
-
-// Pages
+import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
 import { UserSelectionPage } from './pages/UserSelectionPage';
 import { UnifiedAuthPage } from './pages/UnifiedAuthPage';
-
-// Farmer Pages
 import { FarmerLoginPage } from './pages/farmer/FarmerLoginPage';
 import { FarmerRegisterPage } from './pages/farmer/FarmerRegisterPage';
 import { FarmerDashboard } from './pages/farmer/FarmerDashboard';
@@ -25,8 +21,6 @@ import { FarmerOrderDetail } from './pages/farmer/FarmerOrderDetail';
 import { FarmerNotifications } from './pages/farmer/FarmerNotifications';
 import { FarmerProfile } from './pages/farmer/FarmerProfile';
 import { FarmerHelp } from './pages/farmer/FarmerHelp';
-
-// Buyer Pages
 import { BuyerLoginPage } from './pages/buyer/BuyerLoginPage';
 import { BuyerRegisterPage } from './pages/buyer/BuyerRegisterPage';
 import { BuyerDashboard } from './pages/buyer/BuyerDashboard';
@@ -41,27 +35,21 @@ import { BuyerPayment } from './pages/buyer/BuyerPayment';
 import { BuyerProfile } from './pages/buyer/BuyerProfile';
 import { BuyerNotifications } from './pages/buyer/BuyerNotifications';
 
-export const App: React.FC = () => {
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Top Demo Persona Switcher */}
-      <DemoBanner />
+export const App: React.FC = () => (
+  <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <Navbar />
+    <main className="flex-1">
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/user-select" element={<UserSelectionPage />} />
+        <Route path="/login" element={<UnifiedAuthPage />} />
+        <Route path="/register" element={<UnifiedAuthPage />} />
+        <Route path="/farmer/login" element={<FarmerLoginPage />} />
+        <Route path="/farmer/register" element={<FarmerRegisterPage />} />
+        <Route path="/buyer/login" element={<BuyerLoginPage />} />
+        <Route path="/buyer/register" element={<BuyerRegisterPage />} />
 
-      {/* Main Header / Navbar */}
-      <Navbar />
-
-      {/* Main View Router */}
-      <main className="flex-1">
-        <Routes>
-          {/* Public & Unified Auth Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/user-select" element={<UserSelectionPage />} />
-          <Route path="/login" element={<UnifiedAuthPage />} />
-          <Route path="/register" element={<UnifiedAuthPage />} />
-
-          {/* Farmer Routes */}
-          <Route path="/farmer/login" element={<FarmerLoginPage />} />
-          <Route path="/farmer/register" element={<FarmerRegisterPage />} />
+        <Route element={<ProtectedRoute role="farmer" />}>
           <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
           <Route path="/farmer/market-prices" element={<FarmerMarketPrices />} />
           <Route path="/farmer/market-prices/:crop" element={<FarmerCropPriceDetail />} />
@@ -74,10 +62,9 @@ export const App: React.FC = () => {
           <Route path="/farmer/notifications" element={<FarmerNotifications />} />
           <Route path="/farmer/profile" element={<FarmerProfile />} />
           <Route path="/farmer/help" element={<FarmerHelp />} />
+        </Route>
 
-          {/* Buyer Routes */}
-          <Route path="/buyer/login" element={<BuyerLoginPage />} />
-          <Route path="/buyer/register" element={<BuyerRegisterPage />} />
+        <Route element={<ProtectedRoute role="buyer" />}>
           <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
           <Route path="/buyer/find-crops" element={<BuyerFindCrops />} />
           <Route path="/buyer/requirements" element={<BuyerRequirements />} />
@@ -89,19 +76,14 @@ export const App: React.FC = () => {
           <Route path="/buyer/payment/:id" element={<BuyerPayment />} />
           <Route path="/buyer/profile" element={<BuyerProfile />} />
           <Route path="/buyer/notifications" element={<BuyerNotifications />} />
+        </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-
-      {/* Global Footer */}
-      <Footer />
-
-      {/* Mobile Smartphone Bottom Navigation */}
-      <MobileBottomNav />
-    </div>
-  );
-};
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </main>
+    <Footer />
+    <MobileBottomNav />
+  </div>
+);
 
 export default App;
