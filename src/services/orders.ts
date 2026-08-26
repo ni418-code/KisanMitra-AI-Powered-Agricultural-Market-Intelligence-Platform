@@ -1,137 +1,27 @@
 import { Order, OrderStatus } from '../types';
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-/*
- * ============================================================
- * GET ALL ORDERS
- * ============================================================
- */
+import { apiFetch } from './api';
 
 export const getOrders = async (): Promise<Order[]> => {
-  const response = await fetch(`${API_BASE_URL}/orders`);
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch orders');
-  }
-
-  const data = await response.json();
-
-  return data;
+  const data = await apiFetch('/orders');
+  return Array.isArray(data) ? data : data.orders || [];
 };
 
-
-/*
- * ============================================================
- * CREATE ORDER
- * ============================================================
- */
-
-export const createOrder = async (
-  order: Order
-): Promise<Order> => {
-
-  const response = await fetch(
-    `${API_BASE_URL}/orders`,
-    {
-      method: 'POST',
-
-      headers: {
-        'Content-Type': 'application/json',
-      },
-
-      body: JSON.stringify(order),
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.message ||
-      'Failed to create order'
-    );
-  }
-
-  const data = await response.json();
-
-  return data;
+export const createOrder = async (order: Partial<Order>): Promise<Order> => {
+  const data = await apiFetch('/orders', { method: 'POST', body: JSON.stringify(order) });
+  return data.order || data;
 };
 
-
-/*
- * ============================================================
- * UPDATE ORDER STATUS
- * ============================================================
- */
-
-export const updateOrderStatus = async (
-  orderId: string,
-  status: OrderStatus
-): Promise<Order> => {
-
-  const response = await fetch(
-    `${API_BASE_URL}/orders/${orderId}/status`,
-    {
-      method: 'PUT',
-
-      headers: {
-        'Content-Type': 'application/json',
-      },
-
-      body: JSON.stringify({
-        status,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.message ||
-      'Failed to update order status'
-    );
-  }
-
-  const data = await response.json();
-
-  return data;
+export const getOrder = async (orderId: string): Promise<Order> => {
+  const data = await apiFetch(`/orders/${orderId}`);
+  return data.order || data;
 };
 
+export const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<Order> => {
+  const data = await apiFetch(`/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+  return data.order || data;
+};
 
-/*
- * ============================================================
- * COMPLETE PAYMENT
- * ============================================================
- */
-
-export const payOrder = async (
-  orderId: string
-): Promise<Order> => {
-
-  const response = await fetch(
-    `${API_BASE_URL}/orders/${orderId}/payment`,
-    {
-      method: 'PUT',
-
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(
-      errorData?.message ||
-      'Failed to complete payment'
-    );
-  }
-
-  const data = await response.json();
-
-  return data;
+export const payOrder = async (orderId: string): Promise<Order> => {
+  const data = await apiFetch(`/orders/${orderId}/pay`, { method: 'POST', body: JSON.stringify({ method: 'UPI (simulated)' }) });
+  return data.order || data;
 };
