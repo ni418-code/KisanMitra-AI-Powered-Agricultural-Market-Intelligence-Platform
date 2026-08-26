@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
-const { createRequirement, getRequirements, updateRequirementStatus } = require('../controllers/requirementController');
+const { createRequirement, getRequirements, getRequirement, acceptRequirement, declineRequirement } = require('../controllers/requirementController');
 
-router.get('/', getRequirements);
+router.get('/', requireAuth, getRequirements);
+router.get('/:id', requireAuth, getRequirement);
 router.post('/', requireAuth, createRequirement);
-router.put('/:id/status', requireAuth, updateRequirementStatus);
+router.post('/:id/accept', requireAuth, acceptRequirement);
+router.post('/:id/decline', requireAuth, declineRequirement);
+router.put('/:id/status', requireAuth, async (req, res) => res.status(410).json({ error: 'Use the accept or decline endpoints for farmer actions.' }));
 
 module.exports = router;
