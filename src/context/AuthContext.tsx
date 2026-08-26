@@ -1,24 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole, Language } from '../types';
-import { DEMO_FARMER_RAMESH, DEMO_BUYER_FRESHMART } from '../data/mockUsers';
-
-export interface RegisteredAccount extends User {
-  password?: string;
-  registeredAt?: string;
-}
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Language, User, UserRole } from '../types';
+import { apiFetch } from '../services/api';
 
 interface AuthContextType {
   currentUser: User | null;
   currentRole: UserRole | 'guest';
-  registeredUsers: RegisteredAccount[];
-  loginAsDemoFarmer: () => void;
-  loginAsDemoBuyer: () => void;
-  loginCustom: (user: User) => void;
-  loginWithCredentials: (
-    identifier: string,
-    password?: string,
-    role?: UserRole
-  ) => { success: boolean; error?: string; user?: User };
+  loading: boolean;
+  loginWithCredentials: (identifier: string, password?: string, role?: UserRole) => Promise<{ success: boolean; error?: string; user?: User }>;
   registerFarmer: (data: {
     name: string;
     phone: string;
@@ -26,8 +14,8 @@ interface AuthContextType {
     location: string;
     state: string;
     language: Language;
-    password?: string;
-  }) => { success: boolean; error?: string; user?: User };
+    password: string;
+  }) => Promise<{ success: boolean; error?: string; user?: User }>;
   registerBuyer: (data: {
     businessName: string;
     phone: string;
@@ -35,9 +23,9 @@ interface AuthContextType {
     businessType: string;
     location: string;
     state: string;
-    password?: string;
-  }) => { success: boolean; error?: string; user?: User };
-  logout: () => void;
+    password: string;
+  }) => Promise<{ success: boolean; error?: string; user?: User }>;
+  logout: () => Promise<void>;
   isFarmer: boolean;
   isBuyer: boolean;
 }
@@ -45,188 +33,134 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredAccount[]>(() => {
-    const saved = localStorage.getItem('km_registered_users');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return [
-          { ...DEMO_FARMER_RAMESH, password: 'password123' },
-          { ...DEMO_BUYER_FRESHMART, password: 'password123' },
-        ];
-      }
-    }
-    return [
-      { ...DEMO_FARMER_RAMESH, password: 'password123' },
-      { ...DEMO_BUYER_FRESHMART, password: 'password123' },
-    ];
-  });
-
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('km_current_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return DEMO_FARMER_RAMESH;
-      }
-    }
-    return DEMO_FARMER_RAMESH;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('km_registered_users', JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
-
-  const currentRole: UserRole | 'guest' = currentUser ? currentUser.role : 'guest';
-
-  const loginAsDemoFarmer = () => {
-    setCurrentUser(DEMO_FARMER_RAMESH);
-    localStorage.setItem('km_current_user', JSON.stringify(DEMO_FARMER_RAMESH));
-  };
-
-  const loginAsDemoBuyer = () => {
-    setCurrentUser(DEMO_BUYER_FRESHMART);
-    localStorage.setItem('km_current_user', JSON.stringify(DEMO_BUYER_FRESHMART));
-  };
-
-  const loginCustom = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem('km_current_user', JSON.stringify(user));
-  };
-
-  const loginWithCredentials = (
-    identifier: string,
-    password?: string,
-    role?: UserRole
-  ) => {
-    const cleanId = identifier.trim().replace(/\D/g, '');
-    const cleanEmail = identifier.trim().toLowerCase();
-
-    const matched = registeredUsers.find((u) => {
-      if (role && u.role !== role) return false;
-      const uPhone = u.phone.replace(/\D/g, '');
-      const phoneMatch = uPhone.endsWith(cleanId) || cleanId.endsWith(uPhone);
-      const emailMatch = u.email && u.email.toLowerCase() === cleanEmail;
-      return phoneMatch || emailMatch;
-    });
-
-    if (!matched) {
-      // If user enters any phone number for demo, allow friendly auto-login or create account notice
-      if (cleanId.length === 10) {
-        const autoUser: User = {
-          id: `${role || 'farmer'}-${Date.now()}`,
-          name: role === 'buyer' ? 'Verified Buyer' : 'Farmer Partner',
-          role: role || 'farmer',
-          phone: `+91 ${cleanId}`,
-          villageOrBusinessName: role === 'buyer' ? 'Agri Procurement Hub' : 'Koratagere Village',
-          location: role === 'buyer' ? 'Bengaluru Wholesale Hub' : 'Koratagere, Karnataka',
-          state: 'Karnataka',
-          language: 'en',
-          isVerified: true,
-          rating: 5.0,
-          completedOrdersCount: 0,
-        };
-        loginCustom(autoUser);
-        return { success: true, user: autoUser };
+    const restoreSession = async () => {
+      const token = localStorage.getItem('km_token');
+      if (!token) {
+        setLoading(false);
+        return;
       }
-      return {
-        success: false,
-        error: 'No account found with this mobile number or email. Please register first.',
-      };
-    }
 
-    loginCustom(matched);
-    return { success: true, user: matched };
+      try {
+        const response = await apiFetch('/auth/me');
+        setCurrentUser(response.user);
+      } catch {
+        localStorage.removeItem('km_token');
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
+
+  const loginWithCredentials = async (identifier: string, password = '', role?: UserRole) => {
+    try {
+      const value = identifier.trim();
+      if (!value || !password) {
+        return { success: false, error: 'Please enter your phone/email and password.' };
+      }
+
+      const payload = value.includes('@')
+        ? { email: value.toLowerCase(), password }
+        : { phone: value.replace(/\D/g, ''), password };
+
+      const response = await apiFetch('/auth/login-password', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (role && response.user?.role !== role) {
+        return { success: false, error: `This account is registered as a ${response.user.role}, not a ${role}.` };
+      }
+
+      localStorage.setItem('km_token', response.token);
+      setCurrentUser(response.user);
+      return { success: true, user: response.user };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Login failed.' };
+    }
   };
 
-  const registerFarmer = (data: {
+  const registerFarmer = async (data: {
     name: string;
     phone: string;
     village: string;
     location: string;
     state: string;
     language: Language;
-    password?: string;
+    password: string;
   }) => {
-    const cleanPhone = data.phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return { success: false, error: 'Please enter a valid 10-digit mobile number.' };
+    try {
+      const response = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: data.name.trim(),
+          phone: data.phone.replace(/\D/g, ''),
+          role: 'farmer',
+          villageOrBusinessName: data.village.trim(),
+          location: data.location.trim(),
+          state: data.state,
+          language: data.language,
+          password: data.password,
+        }),
+      });
+
+      localStorage.setItem('km_token', response.token);
+      setCurrentUser(response.user);
+      return { success: true, user: response.user };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Registration failed.' };
     }
-
-    const newFarmer: RegisteredAccount = {
-      id: `farmer-${Date.now()}`,
-      name: data.name.trim(),
-      role: 'farmer',
-      phone: `+91 ${cleanPhone}`,
-      villageOrBusinessName: data.village.trim(),
-      location: `${data.village.trim()}, ${data.location.trim()}`,
-      state: data.state,
-      language: data.language,
-      isVerified: true,
-      rating: 5.0,
-      completedOrdersCount: 0,
-      cropsGrownOrPurchased: ['Tomato', 'Chilli', 'Paddy'],
-      password: data.password || 'password123',
-      registeredAt: new Date().toISOString(),
-    };
-
-    setRegisteredUsers((prev) => [newFarmer, ...prev]);
-    loginCustom(newFarmer);
-    return { success: true, user: newFarmer };
   };
 
-  const registerBuyer = (data: {
+  const registerBuyer = async (data: {
     businessName: string;
     phone: string;
     email: string;
     businessType: string;
     location: string;
     state: string;
-    password?: string;
+    password: string;
   }) => {
-    const cleanPhone = data.phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      return { success: false, error: 'Please enter a valid 10-digit mobile number.' };
+    try {
+      const response = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: data.businessName.trim(),
+          phone: data.phone.replace(/\D/g, ''),
+          role: 'buyer',
+          villageOrBusinessName: data.businessName.trim(),
+          location: data.location.trim(),
+          state: data.state,
+          language: 'en',
+          email: data.email.trim() || undefined,
+          businessType: data.businessType.trim(),
+          password: data.password,
+        }),
+      });
+
+      localStorage.setItem('km_token', response.token);
+      setCurrentUser(response.user);
+      return { success: true, user: response.user };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Registration failed.' };
     }
-
-    const newBuyer: RegisteredAccount = {
-      id: `buyer-${Date.now()}`,
-      name: data.businessName.trim(),
-      role: 'buyer',
-      phone: `+91 ${cleanPhone}`,
-      email: data.email.trim(),
-      businessType: data.businessType,
-      villageOrBusinessName: data.businessName.trim(),
-      location: data.location.trim(),
-      state: data.state,
-      language: 'en',
-      isVerified: true,
-      rating: 5.0,
-      completedOrdersCount: 0,
-      cropsGrownOrPurchased: ['Tomato', 'Red Onion', 'Potato'],
-      password: data.password || 'password123',
-      registeredAt: new Date().toISOString(),
-    };
-
-    setRegisteredUsers((prev) => [newBuyer, ...prev]);
-    loginCustom(newBuyer);
-    return { success: true, user: newBuyer };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    localStorage.removeItem('km_token');
     setCurrentUser(null);
-    localStorage.removeItem('km_current_user');
   };
 
-  const value = {
+  const value: AuthContextType = {
     currentUser,
-    currentRole,
-    registeredUsers,
-    loginAsDemoFarmer,
-    loginAsDemoBuyer,
-    loginCustom,
+    currentRole: currentUser?.role || 'guest',
+    loading,
     loginWithCredentials,
     registerFarmer,
     registerBuyer,
@@ -240,8 +174,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
